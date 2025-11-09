@@ -1,0 +1,13 @@
+Brain Segmentation Report
+==================================================
+
+Total regions segmented: 6
+
+Regions:
+--------------------------------------------------
+Label   1: CSF (Cerebrospinal Fluid)                -   447409 voxels
+Label   2: Gray Matter                              -   365124 voxels
+Label   3: White Matter                             -   594588 voxels
+Label   4: Deep Gray Matter                         -    34035 voxels
+Label   5: Brain Stem                               -    21781 voxels
+Label   6: Cerebellum                               -   140088 voxels
