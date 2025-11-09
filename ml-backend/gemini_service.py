@@ -1,152 +1,224 @@
 import google.generativeai as genai
 import os
 import json
-import re
 from dotenv import load_dotenv
 
+# Load environment variables
 load_dotenv()
 
-# Configure Gemini
+# Setup Gemini
 genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
+model = genai.GenerativeModel('gemini-2.0-flash-exp')
 
-def analyze_surgery(surgery_type: str, location: str, force: float, angle: float) -> dict:
+
+def analyze_bone_removal(procedure_type: str, removal_region: dict, patient_age: int, reason: str) -> dict:
     """
-    Analyze surgical parameters using Gemini AI to predict biomechanical outcomes.
+    Analyze consequences of removing a bone section.
     
     Args:
-        surgery_type: Type of surgery (osteotomy, implant, etc.)
-        location: Target anatomical location (mandible, maxilla, etc.)
-        force: Applied force in Newtons
-        angle: Cutting angle in degrees
-        
+        procedure_type: Type of procedure (e.g., "resection")
+        removal_region: Dict with boneName, section, startPoint, endPoint, estimatedSize
+        patient_age: Patient age in years
+        reason: Reason for surgery (e.g., "tumor removal")
+    
     Returns:
-        Dictionary with fracture risk, stress points, verdict, reasoning, and recommendation
+        Comprehensive analysis of removal consequences
     """
     
-    # Create the prompt
-    prompt = f"""You are an expert biomechanical engineer specializing in maxillofacial surgery simulation and finite element analysis.
+    # Extract removal details
+    bone_name = removal_region['boneName']
+    section = removal_region['section']
+    start = removal_region['startPoint']
+    end = removal_region['endPoint']
+    size = removal_region['estimatedSize']
+    
+    # Create detailed prompt
+    prompt = f"""You are an expert maxillofacial surgeon and biomechanical engineer.
 
-PATIENT DATA:
-- Skull: Adult human, normal bone density
-- Bone properties: Cortical bone (Young's modulus: 15 GPa, Poisson's ratio: 0.3)
+CLINICAL SCENARIO:
+- Patient Age: {patient_age} years
+- Procedure: {procedure_type}
+- Indication: {reason}
 
-SURGICAL PARAMETERS:
-- Procedure: {surgery_type}
-- Target Location: {location}
-- Applied Force: {force} Newtons
-- Cutting Angle: {angle} degrees
+BONE REMOVAL PLAN:
+- Target Bone: {bone_name}
+- Section: {section}
+- Start Coordinates: x={start['x']:.2f}, y={start['y']:.2f}, z={start['z']:.2f}
+- End Coordinates: x={end['x']:.2f}, y={end['y']:.2f}, z={end['z']:.2f}
+- Estimated Size: {size}
 
-TASK: Perform a comprehensive biomechanical analysis and predict outcomes.
+TASK: Predict ALL consequences of removing this bone section.
 
 Analyze:
-1. Von Mises stress distribution and concentration points
-2. Fracture probability based on force magnitude, angle, and bone geometry
-3. Risk of complications (nerve damage, vascular injury, structural failure)
-4. Alternative safer surgical approaches
+1. Biomechanical changes (stress redistribution on remaining bone)
+2. Functional impact (bite force, chewing, speech, swallowing)
+3. Alignment changes (jaw deviation, midline shift)
+4. Reconstruction requirements and options
+5. Surgical risks (nerve damage, infection, non-union)
+6. Long-term outcomes (with and without reconstruction)
 
-Respond with ONLY valid JSON (no markdown, no code blocks, no extra text):
+Respond with ONLY valid JSON (no markdown, no extra text):
 {{
-  "fractureRisk": <integer 0-100>,
-  "stressPoints": [
-    {{"x": <float -1 to 1>, "y": <float -1 to 1>, "z": <float -1 to 1>, "intensity": <float 0-1>}}
+  "removalSummary": {{
+    "affectedStructures": ["list of affected anatomical structures"],
+    "preservedStructures": ["list of preserved structures"]
+  }},
+  
+  "biomechanicalChanges": {{
+    "stressRedistribution": [
+      {{
+        "location": "anatomical location",
+        "stressIncrease": "percentage",
+        "coordinates": {{"x": float, "y": float, "z": float}},
+        "severity": "HIGH|MODERATE|LOW"
+      }}
+    ],
+    "alignmentChanges": {{
+      "description": "detailed description of jaw alignment changes",
+      "deviation": "quantified deviation if applicable"
+    }}
+  }},
+  
+  "functionalImpact": {{
+    "biteForce": "description of bite force changes",
+    "chewing": "description of chewing ability changes",
+    "speech": "description of speech impact",
+    "swallowing": "description of swallowing impact",
+    "overallFunction": "percentage of normal function remaining"
+  }},
+  
+  "reconstructionPlan": {{
+    "necessary": true|false,
+    "urgency": "IMMEDIATE|DELAYED|OPTIONAL",
+    "options": [
+      {{
+        "method": "reconstruction method name",
+        "description": "brief description",
+        "successRate": "percentage",
+        "pros": ["list of advantages"],
+        "cons": ["list of disadvantages"]
+      }}
+    ],
+    "recommendation": "specific recommendation with rationale"
+  }},
+  
+  "risks": [
+    {{
+      "type": "risk type",
+      "probability": "percentage",
+      "consequences": "description of consequences",
+      "prevention": "prevention strategies"
+    }}
   ],
-  "verdict": "<SAFE|CAUTION|DANGER>",
-  "reasoning": "<concise 2-3 sentence biomechanical explanation>",
-  "recommendation": "<specific actionable surgical advice>"
+  
+  "recommendations": [
+    "specific surgical recommendation 1",
+    "specific surgical recommendation 2",
+    "specific surgical recommendation 3"
+  ]
 }}
 
-Generate 4-6 realistic stress concentration points around the {location} region based on anatomical stress distribution patterns."""
+Generate realistic, medically accurate predictions based on surgical biomechanics and anatomy."""
 
     try:
-        # Call Gemini API
-        model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        # Call Gemini
         response = model.generate_content(prompt)
+        text = response.text
         
-        # Extract and clean JSON response
-        response_text = response.text.strip()
-        
-        # Remove markdown code blocks if present
-        response_text = re.sub(r'```json\s*', '', response_text)
-        response_text = re.sub(r'```\s*', '', response_text)
+        # Clean up response
+        text = text.replace('```json', '').replace('```', '').strip()
         
         # Parse JSON
-        result = json.loads(response_text)
-        
-        # Validate and return
-        return {
-            "fractureRisk": int(result.get("fractureRisk", 50)),
-            "stressPoints": result.get("stressPoints", []),
-            "verdict": result.get("verdict", "CAUTION"),
-            "reasoning": result.get("reasoning", "Analysis completed"),
-            "recommendation": result.get("recommendation", "Proceed with standard protocols")
-        }
-        
-    except json.JSONDecodeError as e:
-        print(f"JSON parsing error: {e}")
-        print(f"Response text: {response_text}")
-        # Return fallback result
-        return generate_fallback_result(surgery_type, location, force, angle)
+        result = json.loads(text)
+        return result
         
     except Exception as e:
-        print(f"Gemini API error: {e}")
-        return generate_fallback_result(surgery_type, location, force, angle)
+        print(f"Error: {e}")
+        # Return fallback analysis
+        return generate_fallback_analysis(bone_name, section, size, patient_age)
 
 
-def generate_fallback_result(surgery_type: str, location: str, force: float, angle: float) -> dict:
+def generate_fallback_analysis(bone_name: str, section: str, size: str, patient_age: int) -> dict:
     """
-    Generate a physics-based fallback simulation if Gemini fails.
+    Fallback analysis if Gemini fails
     """
-    # Calculate fracture risk based on force
-    fracture_risk = min(int((force / 100) * 80 + (angle / 90) * 20), 100)
-    
-    # Determine verdict
-    if fracture_risk > 70:
-        verdict = "DANGER"
-    elif fracture_risk > 40:
-        verdict = "CAUTION"
-    else:
-        verdict = "SAFE"
-    
-    # Generate stress points based on location
-    stress_points = generate_stress_points(location, force / 100)
-    
     return {
-        "fractureRisk": fracture_risk,
-        "stressPoints": stress_points,
-        "verdict": verdict,
-        "reasoning": f"Stress analysis indicates {fracture_risk}% fracture probability at {location} with {force}N force at {angle}° angle. Force magnitude is {'high' if force > 60 else 'moderate' if force > 30 else 'low'}.",
-        "recommendation": f"{'Reduce force below 50N or adjust angle to 30-40°' if force > 60 else 'Current parameters are within acceptable range. Monitor stress distribution during procedure.'}"
-    }
-
-
-def generate_stress_points(location: str, intensity_factor: float) -> list:
-    """
-    Generate anatomically realistic stress concentration points.
-    """
-    stress_patterns = {
-        "mandible": [
-            {"x": 0.5, "y": -0.3, "z": 0.1, "intensity": intensity_factor * 0.9},
-            {"x": -0.5, "y": -0.3, "z": 0.1, "intensity": intensity_factor * 0.85},
-            {"x": 0, "y": -0.5, "z": 0, "intensity": intensity_factor * 0.95},
-            {"x": 0.3, "y": -0.2, "z": -0.2, "intensity": intensity_factor * 0.7},
-            {"x": -0.3, "y": -0.2, "z": -0.2, "intensity": intensity_factor * 0.65}
+        "removalSummary": {
+            "affectedStructures": [f"{bone_name} {section}", "surrounding soft tissue"],
+            "preservedStructures": [f"remaining {bone_name}", "opposite side structures"]
+        },
+        
+        "biomechanicalChanges": {
+            "stressRedistribution": [
+                {
+                    "location": f"remaining {bone_name}",
+                    "stressIncrease": "40-50%",
+                    "coordinates": {"x": 0.0, "y": -0.3, "z": 0.1},
+                    "severity": "HIGH"
+                }
+            ],
+            "alignmentChanges": {
+                "description": f"Removal of {section} will cause jaw deviation toward the affected side",
+                "deviation": "Moderate lateral shift expected"
+            }
+        },
+        
+        "functionalImpact": {
+            "biteForce": f"Expected 50-60% reduction on affected side",
+            "chewing": "Significant impairment, patient will compensate with opposite side",
+            "speech": "Minimal impact on articulation",
+            "swallowing": "Moderate difficulty initially, adaptation expected",
+            "overallFunction": "40-50% of normal without reconstruction"
+        },
+        
+        "reconstructionPlan": {
+            "necessary": True,
+            "urgency": "IMMEDIATE",
+            "options": [
+                {
+                    "method": "Titanium reconstruction plate",
+                    "description": "Metal plate to bridge the defect",
+                    "successRate": "85%",
+                    "pros": ["Immediate stability", "Lower surgical complexity"],
+                    "cons": ["No bone regeneration", "Risk of plate exposure"]
+                },
+                {
+                    "method": "Free bone graft (fibula/iliac crest)",
+                    "description": "Transfer living bone from another site",
+                    "successRate": "75%",
+                    "pros": ["Living bone tissue", "Long-term stability"],
+                    "cons": ["Complex surgery", "Donor site morbidity"]
+                }
+            ],
+            "recommendation": "Titanium plate with delayed bone grafting recommended for optimal outcome"
+        },
+        
+        "risks": [
+            {
+                "type": "Nerve damage",
+                "probability": "25-30%",
+                "consequences": "Numbness of lower lip and chin on affected side",
+                "prevention": "Careful nerve identification and preservation during surgery"
+            },
+            {
+                "type": "Infection",
+                "probability": "10-15%",
+                "consequences": "Delayed healing, possible hardware removal",
+                "prevention": "Prophylactic antibiotics, sterile technique"
+            },
+            {
+                "type": "Non-union",
+                "probability": "15-20%",
+                "consequences": "Failure of bone healing at reconstruction site",
+                "prevention": "Adequate fixation, bone grafting if needed"
+            }
         ],
-        "maxilla": [
-            {"x": 0.4, "y": 0.2, "z": 0.1, "intensity": intensity_factor * 0.85},
-            {"x": -0.4, "y": 0.2, "z": 0.1, "intensity": intensity_factor * 0.8},
-            {"x": 0, "y": 0.3, "z": 0, "intensity": intensity_factor * 0.9},
-            {"x": 0.2, "y": 0.1, "z": 0.2, "intensity": intensity_factor * 0.6}
-        ],
-        "zygomatic": [
-            {"x": 0.6, "y": 0.1, "z": 0.2, "intensity": intensity_factor * 0.9},
-            {"x": 0.4, "y": 0.2, "z": 0.3, "intensity": intensity_factor * 0.75},
-            {"x": 0.5, "y": 0, "z": 0.1, "intensity": intensity_factor * 0.8}
-        ],
-        "temporal": [
-            {"x": 0.7, "y": 0.3, "z": 0.1, "intensity": intensity_factor * 0.85},
-            {"x": 0.5, "y": 0.4, "z": 0, "intensity": intensity_factor * 0.7},
-            {"x": 0.6, "y": 0.2, "z": -0.1, "intensity": intensity_factor * 0.75}
+        
+        "recommendations": [
+            f"Consider patient age ({patient_age} years) in reconstruction planning",
+            f"Preserve vascular supply to remaining {bone_name}",
+            "Use load-bearing reconstruction plate if immediate bone grafting not possible",
+            "Plan for secondary procedures if needed",
+            "Postoperative physical therapy for jaw function"
         ]
     }
-    
-    return stress_patterns.get(location, stress_patterns["mandible"])

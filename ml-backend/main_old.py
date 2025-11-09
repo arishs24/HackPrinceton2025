@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from gemini_service import analyze_bone_removal
+from gemini_service import analyze_surgery
 
 # Create FastAPI app
 app = FastAPI(
@@ -20,18 +20,11 @@ app.add_middleware(
 )
 
 # Request model
-class RemovalRegion(BaseModel):
-    boneName: str  # Required: "mandible", "maxilla", etc.
-    section: str   # Required: "right body", "left angle", etc.
-    startPoint: dict  # Required: {x, y, z}
-    endPoint: dict    # Required: {x, y, z}
-    estimatedSize: str  # Required: "3cm section", "5cm x 2cm", etc.
-
 class SurgeryRequest(BaseModel):
-    procedureType: str  # Required: "resection", "reconstruction", etc.
-    removalRegion: RemovalRegion  # Required
-    patientAge: int  # Required: actual patient age
-    reason: str  # Required: "tumor removal", "trauma repair", etc.
+    surgeryType: str
+    location: str
+    force: float
+    angle: float
 
 # Response model
 class SurgeryResponse(BaseModel):
@@ -50,18 +43,18 @@ def read_root():
         "version": "1.0.0"
     }
 
-@app.post("/api/simulate")  # Remove response_model validation
+@app.post("/api/simulate", response_model=SurgeryResponse)
 def simulate_surgery(request: SurgeryRequest):
     """
-    Analyze bone removal consequences and predict outcomes
+    Main endpoint: Analyze surgical parameters and return risk prediction
     """
     try:
-        # Call updated Gemini AI service
-        result = analyze_bone_removal(
-            procedure_type=request.procedureType,
-            removal_region=request.removalRegion.dict(),
-            patient_age=request.patientAge,
-            reason=request.reason
+        # Call Gemini AI service
+        result = analyze_surgery(
+            surgery_type=request.surgeryType,
+            location=request.location,
+            force=request.force,
+            angle=request.angle
         )
         
         return result
