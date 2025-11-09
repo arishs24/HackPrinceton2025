@@ -1,0 +1,10 @@
+nibabel>=5.0.0
+numpy>=1.21.0
+scipy>=1.7.0
+scikit-image>=0.18.0
+tensorflow>=2.8.0
+synthseg>=2.0
+
+# Alternative (optional):
+# antspynet>=0.2.0
+
