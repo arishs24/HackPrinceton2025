@@ -35,7 +35,6 @@ Synovia is a cutting-edge web application that transforms brain MRI/CT scans int
 - **Python 3.10+**
 - **Node.js 18+** and npm
 - **Google Gemini API Key** ([Get one here](https://ai.google.dev/))
-- **Snowflake Account** (optional for demo)
 
 ### Backend Setup
 
