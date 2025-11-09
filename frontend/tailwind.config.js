@@ -15,7 +15,8 @@ export default {
         'glass-border': 'rgba(255, 255, 255, 0.1)',
       },
       fontFamily: {
-        'sans': ['Inter', 'SF Pro Display', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+        'sans': ['Manrope', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+        'serif': ['Instrument Serif', 'serif'],
       },
       backdropBlur: {
         'glass': '12px',
