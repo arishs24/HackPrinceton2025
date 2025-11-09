@@ -4,7 +4,7 @@
 > 
 > Reimagining [AlgoSurg (YC W18)](https://www.ycombinator.com/companies/algosurg-inc) with AI at its core.
 
-Built at **HackPrinceton Fall 2024** | YC Company Challenge
+Built at **HackPrinceton Fall 2025** | YC Company Challenge
 
 ---
 
