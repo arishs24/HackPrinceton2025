@@ -1,78 +1,63 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from gemini_service import analyze_bone_removal
+from gemini_service import analyze_brain_removal
 
-# Create FastAPI app
 app = FastAPI(
-    title="PreSurg.AI - ML Simulation API",
-    description="AI-powered pre-surgical biomechanical simulation",
+    title="PreSurg.AI - Brain Surgery ML API",
+    description="AI-powered pre-surgical brain tissue removal simulation",
     version="1.0.0"
 )
 
-# Allow frontend to call this API (CORS)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify your frontend URL
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Request model
+# NEW: Proper coordinate model
+class Coordinates(BaseModel):
+    x: float
+    y: float
+    z: float
+
 class RemovalRegion(BaseModel):
-    boneName: str  # Required: "mandible", "maxilla", etc.
-    section: str   # Required: "right body", "left angle", etc.
-    startPoint: dict  # Required: {x, y, z}
-    endPoint: dict    # Required: {x, y, z}
-    estimatedSize: str  # Required: "3cm section", "5cm x 2cm", etc.
+    brainRegion: str
+    hemisphere: str
+    coordinates: Coordinates  # Now properly typed!
+    volumeToRemove: str
 
 class SurgeryRequest(BaseModel):
-    procedureType: str  # Required: "resection", "reconstruction", etc.
-    removalRegion: RemovalRegion  # Required
-    patientAge: int  # Required: actual patient age
-    reason: str  # Required: "tumor removal", "trauma repair", etc.
-
-# Response model
-class SurgeryResponse(BaseModel):
-    fractureRisk: int
-    stressPoints: list
-    verdict: str
-    reasoning: str
-    recommendation: str
+    procedureType: str
+    removalRegion: RemovalRegion
+    patientAge: int
+    reason: str
 
 @app.get("/")
 def read_root():
-    """Health check endpoint"""
     return {
         "status": "online",
-        "service": "PreSurg.AI ML API",
-        "version": "1.0.0"
+        "service": "PreSurg.AI Brain Surgery ML API",
+        "version": "1.0.0",
+        "organ": "brain"
     }
 
-@app.post("/api/simulate")  # Remove response_model validation
+@app.post("/api/simulate")
 def simulate_surgery(request: SurgeryRequest):
-    """
-    Analyze bone removal consequences and predict outcomes
-    """
+    """Analyze brain tissue removal consequences"""
     try:
-        # Call updated Gemini AI service
-        result = analyze_bone_removal(
+        result = analyze_brain_removal(
             procedure_type=request.procedureType,
             removal_region=request.removalRegion.dict(),
             patient_age=request.patientAge,
             reason=request.reason
         )
-        
         return result
-        
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/health")
 def health_check():
-    """Check if API and Gemini connection is working"""
-    return {
-        "api": "healthy",
-        "gemini": "connected"
-    }
+    return {"api": "healthy", "gemini": "connected", "organ": "brain"}

@@ -11,7 +11,7 @@ genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
 model = genai.GenerativeModel('gemini-2.0-flash-exp')
 
 
-def analyze_bone_removal(procedure_type: str, removal_region: dict, patient_age: int, reason: str) -> dict:
+def analyze_brain_removal(procedure_type: str, removal_region: dict, patient_age: int, reason: str) -> dict:
     """
     Analyze consequences of removing a bone section.
     
@@ -26,90 +26,124 @@ def analyze_bone_removal(procedure_type: str, removal_region: dict, patient_age:
     """
     
     # Extract removal details
-    bone_name = removal_region['boneName']
-    section = removal_region['section']
-    start = removal_region['startPoint']
-    end = removal_region['endPoint']
-    size = removal_region['estimatedSize']
+    brain_region = removal_region['brainRegion']  # "frontal lobe"
+    hemisphere = removal_region.get('hemisphere', 'left')  # "left" or "right"
+    coordinates = removal_region.get('coordinates', {'x': 0, 'y': 0, 'z': 0})
+    volume = removal_region['volumeToRemove']  # "2cm³"
     
     # Create detailed prompt
-    prompt = f"""You are an expert maxillofacial surgeon and biomechanical engineer.
+    prompt = f"""You are an expert neurosurgeon and neurologist specializing in brain tumor resection and functional neurosurgery.
 
 CLINICAL SCENARIO:
 - Patient Age: {patient_age} years
 - Procedure: {procedure_type}
 - Indication: {reason}
 
-BONE REMOVAL PLAN:
-- Target Bone: {bone_name}
-- Section: {section}
-- Start Coordinates: x={start['x']:.2f}, y={start['y']:.2f}, z={start['z']:.2f}
-- End Coordinates: x={end['x']:.2f}, y={end['y']:.2f}, z={end['z']:.2f}
-- Estimated Size: {size}
+BRAIN TISSUE REMOVAL PLAN:
+- Brain Region: {brain_region}
+- Hemisphere: {hemisphere}
+- Coordinates: x={coordinates['x']:.2f}, y={coordinates['y']:.2f}, z={coordinates['z']:.2f}
+- Volume to Remove: {volume}
 
-TASK: Predict ALL consequences of removing this bone section.
+COORDINATE SYSTEM: All coordinates are normalized (-1 to 1 range)
+- x: -1 (left) to +1 (right)
+- y: -1 (inferior) to +1 (superior)  
+- z: -1 (posterior) to +1 (anterior)
+- Origin: Center of brain
+
+TASK: Predict ALL neurological and functional consequences of removing this brain tissue.
 
 Analyze:
-1. Biomechanical changes (stress redistribution on remaining bone)
-2. Functional impact (bite force, chewing, speech, swallowing)
-3. Alignment changes (jaw deviation, midline shift)
-4. Reconstruction requirements and options
-5. Surgical risks (nerve damage, infection, non-union)
-6. Long-term outcomes (with and without reconstruction)
+1. Neurological deficits (motor, sensory, cognitive, language)
+2. Functional impact (movement, speech, memory, personality)
+3. Compensatory mechanisms and neuroplasticity potential
+4. Surgical approach and risks
+5. Recovery prognosis and rehabilitation needs
+6. Long-term quality of life
 
 Respond with ONLY valid JSON (no markdown, no extra text):
 {{
   "removalSummary": {{
-    "affectedStructures": ["list of affected anatomical structures"],
-    "preservedStructures": ["list of preserved structures"]
+    "affectedRegions": ["specific brain areas affected"],
+    "preservedRegions": ["critical areas preserved"],
+    "eloquentCortex": true|false
   }},
   
-  "biomechanicalChanges": {{
-    "stressRedistribution": [
-      {{
-        "location": "anatomical location",
-        "stressIncrease": "percentage",
-        "coordinates": {{"x": float, "y": float, "z": float}},
-        "severity": "HIGH|MODERATE|LOW"
-      }}
-    ],
-    "alignmentChanges": {{
-      "description": "detailed description of jaw alignment changes",
-      "deviation": "quantified deviation if applicable"
+  "neurologicalDeficits": {{
+    "motor": {{
+      "affected": true|false,
+      "description": "specific motor deficits",
+      "severity": "SEVERE|MODERATE|MILD|NONE",
+      "bodyParts": ["affected body parts"]
+    }},
+    "sensory": {{
+      "affected": true|false,
+      "description": "sensory changes",
+      "severity": "SEVERE|MODERATE|MILD|NONE"
+    }},
+    "cognitive": {{
+      "affected": true|false,
+      "functions": ["memory", "attention", "executive function"],
+      "description": "cognitive impact details",
+      "severity": "SEVERE|MODERATE|MILD|NONE"
+    }},
+    "language": {{
+      "affected": true|false,
+      "type": "expressive|receptive|both|none",
+      "description": "language deficits",
+      "severity": "SEVERE|MODERATE|MILD|NONE"
     }}
   }},
   
   "functionalImpact": {{
-    "biteForce": "description of bite force changes",
-    "chewing": "description of chewing ability changes",
-    "speech": "description of speech impact",
-    "swallowing": "description of swallowing impact",
-    "overallFunction": "percentage of normal function remaining"
+    "mobility": "description of movement changes",
+    "independence": "percentage of ADL independence",
+    "communication": "ability to communicate",
+    "cognition": "cognitive function level",
+    "overallQualityOfLife": "percentage of pre-surgery QOL"
   }},
   
-  "reconstructionPlan": {{
-    "necessary": true|false,
-    "urgency": "IMMEDIATE|DELAYED|OPTIONAL",
-    "options": [
-      {{
-        "method": "reconstruction method name",
-        "description": "brief description",
-        "successRate": "percentage",
-        "pros": ["list of advantages"],
-        "cons": ["list of disadvantages"]
-      }}
-    ],
-    "recommendation": "specific recommendation with rationale"
+  "surgicalApproach": {{
+    "recommendedApproach": "awake craniotomy|asleep surgery",
+    "mapping": {{
+      "required": true|false,
+      "methods": ["intraoperative MRI", "cortical stimulation"],
+      "reason": "why mapping is needed"
+    }},
+    "margins": {{
+      "recommended": "distance in mm",
+      "eloquentProximity": "distance to eloquent cortex"
+    }}
   }},
   
   "risks": [
     {{
-      "type": "risk type",
+      "type": "specific neurological risk",
       "probability": "percentage",
-      "consequences": "description of consequences",
-      "prevention": "prevention strategies"
+      "consequences": "detailed consequences",
+      "prevention": "prevention strategies",
+      "reversibility": "permanent|potentially reversible|reversible"
     }}
   ],
+  
+  "recoveryPrognosis": {{
+    "neuroplasticity": {{
+      "potential": "HIGH|MODERATE|LOW",
+      "factors": ["age", "lesion location", "rehabilitation"],
+      "timeline": "expected recovery timeline"
+    }},
+    "rehabilitation": {{
+      "required": true|false,
+      "types": ["physical therapy", "speech therapy", "cognitive rehabilitation"],
+      "duration": "estimated duration",
+      "expectedImprovement": "percentage improvement possible"
+    }},
+    "longTermOutcome": {{
+      "bestCase": "description of best outcome",
+      "worstCase": "description of worst outcome",
+      "mostLikely": "most probable outcome"
+    }}
+  }},
   
   "recommendations": [
     "specific surgical recommendation 1",
@@ -118,7 +152,7 @@ Respond with ONLY valid JSON (no markdown, no extra text):
   ]
 }}
 
-Generate realistic, medically accurate predictions based on surgical biomechanics and anatomy."""
+Generate realistic, medically accurate neurological predictions based on functional neuroanatomy and neurosurgical literature."""
 
     try:
         # Call Gemini
@@ -135,90 +169,111 @@ Generate realistic, medically accurate predictions based on surgical biomechanic
     except Exception as e:
         print(f"Error: {e}")
         # Return fallback analysis
-        return generate_fallback_analysis(bone_name, section, size, patient_age)
+        return generate_fallback_analysis(brain_region, hemisphere, volume, patient_age)
 
 
-def generate_fallback_analysis(bone_name: str, section: str, size: str, patient_age: int) -> dict:
+def generate_fallback_analysis(brain_region: str, hemisphere: str, volume: str, patient_age: int) -> dict:
     """
-    Fallback analysis if Gemini fails
+    Fallback neurological analysis if Gemini fails
     """
+    is_left = hemisphere == "left"
+    
     return {
         "removalSummary": {
-            "affectedStructures": [f"{bone_name} {section}", "surrounding soft tissue"],
-            "preservedStructures": [f"remaining {bone_name}", "opposite side structures"]
+            "affectedRegions": [f"{hemisphere} {brain_region}"],
+            "preservedRegions": ["Contralateral hemisphere", "Brainstem"],
+            "eloquentCortex": brain_region in ["frontal lobe", "temporal lobe", "parietal lobe"]
         },
         
-        "biomechanicalChanges": {
-            "stressRedistribution": [
-                {
-                    "location": f"remaining {bone_name}",
-                    "stressIncrease": "40-50%",
-                    "coordinates": {"x": 0.0, "y": -0.3, "z": 0.1},
-                    "severity": "HIGH"
-                }
-            ],
-            "alignmentChanges": {
-                "description": f"Removal of {section} will cause jaw deviation toward the affected side",
-                "deviation": "Moderate lateral shift expected"
+        "neurologicalDeficits": {
+            "motor": {
+                "affected": "motor" in brain_region.lower() or "frontal" in brain_region.lower(),
+                "description": "Possible contralateral motor weakness",
+                "severity": "MODERATE",
+                "bodyParts": ["Opposite side of body"]
+            },
+            "cognitive": {
+                "affected": True,
+                "functions": ["Working memory", "Executive function"],
+                "description": f"Cognitive deficits expected from {brain_region} removal",
+                "severity": "MODERATE"
+            },
+            "language": {
+                "affected": is_left and brain_region in ["frontal lobe", "temporal lobe"],
+                "type": "expressive" if "frontal" in brain_region else "receptive",
+                "description": "Language deficits if dominant hemisphere",
+                "severity": "MODERATE" if is_left else "MILD"
             }
         },
         
         "functionalImpact": {
-            "biteForce": f"Expected 50-60% reduction on affected side",
-            "chewing": "Significant impairment, patient will compensate with opposite side",
-            "speech": "Minimal impact on articulation",
-            "swallowing": "Moderate difficulty initially, adaptation expected",
-            "overallFunction": "40-50% of normal without reconstruction"
+            "mobility": "Potential motor weakness on opposite side",
+            "independence": "60-70%",
+            "communication": "Moderate language impairment expected" if is_left else "Minimal impact",
+            "cognition": "Working memory and attention deficits likely",
+            "overallQualityOfLife": "65%"
         },
         
-        "reconstructionPlan": {
-            "necessary": True,
-            "urgency": "IMMEDIATE",
-            "options": [
-                {
-                    "method": "Titanium reconstruction plate",
-                    "description": "Metal plate to bridge the defect",
-                    "successRate": "85%",
-                    "pros": ["Immediate stability", "Lower surgical complexity"],
-                    "cons": ["No bone regeneration", "Risk of plate exposure"]
-                },
-                {
-                    "method": "Free bone graft (fibula/iliac crest)",
-                    "description": "Transfer living bone from another site",
-                    "successRate": "75%",
-                    "pros": ["Living bone tissue", "Long-term stability"],
-                    "cons": ["Complex surgery", "Donor site morbidity"]
-                }
-            ],
-            "recommendation": "Titanium plate with delayed bone grafting recommended for optimal outcome"
+        "surgicalApproach": {
+            "recommendedApproach": "awake craniotomy" if is_left else "asleep surgery",
+            "mapping": {
+                "required": True,
+                "methods": ["Cortical stimulation", "fMRI"],
+                "reason": "To preserve eloquent cortex"
+            },
+            "margins": {
+                "recommended": "5-10mm from eloquent areas",
+                "eloquentProximity": "Close to critical regions"
+            }
         },
         
         "risks": [
             {
-                "type": "Nerve damage",
-                "probability": "25-30%",
-                "consequences": "Numbness of lower lip and chin on affected side",
-                "prevention": "Careful nerve identification and preservation during surgery"
+                "type": "Motor deficit",
+                "probability": "30%",
+                "consequences": "Weakness on opposite side",
+                "prevention": "Awake surgery with motor mapping",
+                "reversibility": "potentially reversible"
             },
             {
-                "type": "Infection",
-                "probability": "10-15%",
-                "consequences": "Delayed healing, possible hardware removal",
-                "prevention": "Prophylactic antibiotics, sterile technique"
+                "type": "Cognitive impairment",
+                "probability": "50%",
+                "consequences": "Memory and executive deficits",
+                "prevention": "Minimize resection volume",
+                "reversibility": "partially reversible"
             },
             {
-                "type": "Non-union",
-                "probability": "15-20%",
-                "consequences": "Failure of bone healing at reconstruction site",
-                "prevention": "Adequate fixation, bone grafting if needed"
+                "type": "Seizures",
+                "probability": "25%",
+                "consequences": "Post-op seizures",
+                "prevention": "Prophylactic anti-epileptics",
+                "reversibility": "manageable with medication"
             }
         ],
         
+        "recoveryPrognosis": {
+            "neuroplasticity": {
+                "potential": "HIGH" if patient_age < 40 else "MODERATE",
+                "factors": [f"Age {patient_age}", "Rehabilitation intensity"],
+                "timeline": "6-12 months for maximum recovery"
+            },
+            "rehabilitation": {
+                "required": True,
+                "types": ["Physical therapy", "Cognitive rehab", "Speech therapy"],
+                "duration": "6-12 months",
+                "expectedImprovement": "60-80%"
+            },
+            "longTermOutcome": {
+                "bestCase": "Near-complete recovery with intensive rehab",
+                "worstCase": "Permanent moderate deficits",
+                "mostLikely": "Partial recovery to 70-80% function"
+            }
+        },
+        
         "recommendations": [
-            f"Consider patient age ({patient_age} years) in reconstruction planning",
-            f"Preserve vascular supply to remaining {bone_name}",
-            "Use load-bearing reconstruction plate if immediate bone grafting not possible",
-            "Plan for secondary procedures if needed",
-            "Postoperative physical therapy for jaw function"
+            f"Patient age {patient_age} {'favorable' if patient_age < 50 else 'consider carefully'} for recovery",
+            "Awake craniotomy with brain mapping recommended",
+            "Intensive rehabilitation starting immediately post-op",
+            "Anti-epileptic prophylaxis for 6-12 months"
         ]
     }
